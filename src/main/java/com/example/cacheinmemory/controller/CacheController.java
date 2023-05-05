@@ -26,7 +26,7 @@ public class CacheController {
                  boolean isEdited, int parentId, String userData) {
   }
 
-  @GetMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+  @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
   public Collection<Comment> getCommentByRoom(@RequestParam String roomId) {
     return cache.get(roomId);
   }
