@@ -3,18 +3,18 @@ package com.example.cacheinmemory.model;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
+import lombok.val;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
-@RequiredArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode
 @Getter
 @Setter
 public class Comment {
-  private int id;
+  private Integer id;
   private String roomId;
   private String author;
   private String message;
@@ -23,4 +23,19 @@ public class Comment {
   private boolean isEdited = false;
   private int parentId;
   private String userData;
+
+  public static Comment of(int id, String roomId, String author, String message, Timestamp createAt, Timestamp deletedAt, boolean isEdited, int parentId, String userData) {
+    val comment = new Comment();
+    comment.id = id;
+    comment.roomId = roomId;
+    comment.author = author;
+    comment.message = message;
+    comment.createAt = createAt.toLocalDateTime();
+    comment.deletedAt = deletedAt == null ? null : deletedAt.toLocalDateTime();
+    comment.isEdited = isEdited;
+    comment.parentId = parentId;
+    comment.userData = userData;
+    return comment;
+  }
+
 }

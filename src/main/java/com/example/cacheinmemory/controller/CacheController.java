@@ -1,6 +1,9 @@
 package com.example.cacheinmemory.controller;
 
 import com.example.cacheinmemory.model.Comment;
+import com.example.cacheinmemory.service.CommentService;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import lombok.val;
 import org.springframework.http.MediaType;
 import org.springframework.util.CollectionUtils;
@@ -8,6 +11,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,12 +25,17 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping(path = "/api/cache")
 public class CacheController {
+
+  private final CommentService commentService;
+  private static final AtomicInteger idGenerator = new AtomicInteger(0);
 
   private static final String SUPERUSER = "pthyzpthyz";
 
@@ -75,6 +84,7 @@ public class CacheController {
   public Collection<Comment> postCommentToRoom(@RequestBody Comment comment, @RequestParam String roomId) {
     try {
       lock.lock();
+      comment.setId(comment.getId() != null ? comment.getId() : idGenerator.incrementAndGet());
       cache.add(roomId, comment);
     } finally {
       lock.unlock();
@@ -119,5 +129,33 @@ public class CacheController {
     } finally {
       lock.unlock();
     }
+  }
+
+
+  public void saveBackups() {
+    cache.forEach((key, value) -> commentService.saveAllManually(value));
+  }
+
+  @PostConstruct
+  public void restore() {
+    final Collection<Comment> comments = commentService.getAllComments();
+    if (CollectionUtils.isEmpty(comments)) {
+      return;
+    }
+    comments.forEach(comment -> {
+      if (idGenerator.get() < comment.getId()) {
+        idGenerator.set(comment.getId());
+      }
+      cache.add(comment.getRoomId(), comment);
+    });
+  }
+
+  @PatchMapping("/backup")
+  public void doBackup(@RequestHeader String superUser) {
+    if (!SUPERUSER.equals(superUser)) {
+      return;
+    }
+    saveBackups();
+
   }
 }
